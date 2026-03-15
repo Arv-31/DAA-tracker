@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DAA Tracker</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', sans-serif; background: #0f1117; color: #e0e0e0; min-height: 100vh; }
+  #login-screen { display: none; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; padding: 2rem; }
+  .login-card { background: #1a1d27; border: 1px solid #2a2d3e; border-radius: 16px; padding: 2.5rem 2rem; max-width: 380px; width: 100%; text-align: center; }
+  .login-card h1 { font-size: 22px; font-weight: 600; color: #fff; margin-bottom: 6px; }
+  .login-card p { font-size: 14px; color: #888; margin-bottom: 2rem; line-height: 1.5; }
+  .google-btn { display: flex; align-items: center; justify-content: center; gap: 12px; width: 100%; padding: 13px 20px; background: #fff; color: #1a1a1a; border: none; border-radius: 10px; font-size: 15px; font-weight: 500; cursor: pointer; }
+  .google-btn:hover { background: #f0f0f0; }
+  .login-note { font-size: 12px; color: #555; margin-top: 1.2rem; }
+  #app-screen { display: none; max-width: 700px; margin: 0 auto; padding: 1.2rem 1rem 3rem; }
+  .top-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid #2a2d3e; }
+  .top-bar h1 { font-size: 18px; font-weight: 600; color: #fff; }
+  .user-info { display: flex; align-items: center; gap: 8px; }
+  .user-avatar { width: 32px; height: 32px; border-radius: 50%; border: 2px solid #2a2d3e; }
+  .signout-btn { font-size: 12px; color: #888; background: none; border: 1px solid #2a2d3e; border-radius: 6px; padding: 4px 10px; cursor: pointer; }
+  .signout-btn:hover { color: #fff; border-color: #555; }
+  .progress-section { background: #1a1d27; border: 1px solid #2a2d3e; border-radius: 12px; padding: 1.2rem; margin-bottom: 1.2rem; }
+  .progress-top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; }
+  .progress-top span { font-size: 13px; color: #888; }
+  .progress-top strong { font-size: 15px; color: #4ade80; }
+  .progress-bar { height: 8px; background: #2a2d3e; border-radius: 99px; overflow: hidden; }
+  .progress-fill { height: 100%; background: linear-gradient(90deg, #22c55e, #4ade80); border-radius: 99px; transition: width 0.4s ease; }
+  .action-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 1.2rem; }
+  .action-btn { font-size: 12px; padding: 6px 14px; border-radius: 99px; border: 1px solid #2a2d3e; background: #1a1d27; color: #aaa; cursor: pointer; }
+  .action-btn:hover { background: #2a2d3e; color: #fff; }
+  .unit-block { margin-bottom: 1rem; }
+  .unit-header { display: flex; align-items: center; gap: 10px; padding: 11px 14px; background: #1a1d27; border: 1px solid #2a2d3e; border-radius: 10px; cursor: pointer; user-select: none; }
+  .unit-badge { font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 99px; background: #1a3a2a; color: #4ade80; white-space: nowrap; }
+  .unit-title { font-size: 14px; font-weight: 500; color: #ddd; flex: 1; }
+  .unit-count { font-size: 12px; color: #666; white-space: nowrap; }
+  .chevron { font-size: 11px; color: #555; transition: transform 0.2s; }
+  .unit-chapters { margin-top: 6px; display: flex; flex-direction: column; gap: 6px; }
+  .unit-block.collapsed .unit-chapters { display: none; }
+  .unit-block.collapsed .chevron { transform: rotate(-90deg); }
+  .chapter-block { border: 1px solid #2a2d3e; border-radius: 10px; overflow: hidden; }
+  .chapter-header { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: #14161f; cursor: pointer; user-select: none; }
+  .chapter-header:hover { background: #1a1d27; }
+  .chapter-num { font-size: 11px; color: #666; background: #1e2130; padding: 2px 8px; border-radius: 99px; border: 1px solid #2a2d3e; }
+  .chapter-title { font-size: 13px; font-weight: 500; color: #ccc; flex: 1; }
+  .chapter-prog { font-size: 11px; color: #555; }
+  .chapter-block.chapter-collapsed .chapter-topics { display: none; }
+  .chapter-block.chapter-collapsed .chevron { transform: rotate(-90deg); }
+  .topic-list { list-style: none; }
+  .topic-item { display: flex; align-items: flex-start; gap: 10px; padding: 9px 14px; border-top: 1px solid #1e2130; cursor: pointer; }
+  .topic-item:hover { background: #1a1d27; }
+  .topic-item.subtopic { padding-left: 34px; }
+  .topic-item.subsubtopic { padding-left: 54px; }
+  .checkbox { width: 17px; height: 17px; border: 1.5px solid #3a3d50; border-radius: 4px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; transition: all 0.15s; }
+  .checkbox.checked { background: #22c55e; border-color: #22c55e; }
+  .checkmark { display: none; }
+  .checkbox.checked .checkmark { display: block; width: 9px; height: 6px; position: relative; }
+  .checkbox.checked .checkmark::after { content: ''; position: absolute; left: 0; top: -1px; width: 9px; height: 5px; border-left: 2px solid #fff; border-bottom: 2px solid #fff; transform: rotate(-45deg); }
+  .topic-label { font-size: 13px; color: #bbb; line-height: 1.5; }
+  .topic-item.done .topic-label { color: #444; text-decoration: line-through; }
+  .sync-status { position: fixed; bottom: 16px; right: 16px; font-size: 12px; padding: 6px 14px; border-radius: 99px; background: #1a1d27; border: 1px solid #2a2d3e; color: #666; }
+  .sync-status.saving { color: #f59e0b; border-color: #92400e; }
+  .sync-status.saved { color: #22c55e; border-color: #14532d; }
+  .loading { display: flex; align-items: center; justify-content: center; min-height: 100vh; color: #555; font-size: 15px; }
+</style>
+</head>
+<body>
+
+<div id="loading-screen" class="loading">Loading...</div>
+<div id="login-screen">
+  <div class="login-card">
+    <h1>DAA Tracker</h1>
+    <p>Design &amp; Analysis of Algorithms<br>Sign in to sync your progress across all devices</p>
+    <button class="google-btn" onclick="signInWithGoogle()">
+      <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.2l6.8-6.8C35.8 2.5 30.2 0 24 0 14.6 0 6.6 5.5 2.7 13.5l7.9 6.1C12.5 13.3 17.8 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h12.7c-.6 3-2.3 5.5-4.8 7.2l7.5 5.8c4.4-4.1 7.1-10.1 7.1-17z"/><path fill="#FBBC05" d="M10.6 28.4A14.5 14.5 0 0 1 9.5 24c0-1.5.3-3 .7-4.4L2.3 13.5A23.9 23.9 0 0 0 0 24c0 3.8.9 7.4 2.5 10.6l8.1-6.2z"/><path fill="#34A853" d="M24 48c6.2 0 11.4-2 15.2-5.5l-7.5-5.8c-2 1.4-4.6 2.2-7.7 2.2-6.2 0-11.5-4.2-13.4-9.9l-7.9 6.1C6.5 42.5 14.6 48 24 48z"/></svg>
+      Continue with Google
+    </button>
+    <p class="login-note">Free. No credit card. Progress syncs across phone, laptop, any device.</p>
+  </div>
+</div>
+<div id="app-screen">
+  <div class="top-bar">
+    <h1>DAA Tracker</h1>
+    <div class="user-info">
+      <img class="user-avatar" id="user-avatar" src="" alt="">
+      <button class="signout-btn" onclick="signOut()">Sign out</button>
+    </div>
+  </div>
+  <div class="progress-section">
+    <div class="progress-top">
+      <span id="prog-label">0 of 0 topics</span>
+      <strong id="prog-pct">0%</strong>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="prog-fill" style="width:0%"></div></div>
+  </div>
+  <div class="action-row">
+    <button class="action-btn" onclick="checkAll()">Mark all done</button>
+    <button class="action-btn" onclick="uncheckAll()">Clear all</button>
+    <button class="action-btn" onclick="expandAll()">Expand all</button>
+    <button class="action-btn" onclick="collapseAll()">Collapse all</button>
+  </div>
+  <div id="syllabus"></div>
+</div>
+<div class="sync-status saved" id="sync-status">synced</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut as fbSignOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCkGS_pZBAOl3MgClS7k7mjd2RnjboHzso",
+  authDomain: "daa-tracker-e4173.firebaseapp.com",
+  projectId: "daa-tracker-e4173",
+  storageBucket: "daa-tracker-e4173.firebasestorage.app",
+  messagingSenderId: "257945005202",
+  appId: "1:257945005202:web:6ecb92ee437b31e0e20a4b"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+const syllabus = [
+  { unit: "Unit-I", label: "Introduction & Analysis Framework", chapters: [
+    { num: "1", title: "Introduction to Algorithm", topics: [
+      { id: "1.1", text: "What is an Algorithm?" },
+      { id: "1.2", text: "The Notion of the Algorithm" },
+      { id: "1.3", text: "Characteristics of an Algorithm" },
+      { id: "1.4", text: "What is Design and Analysis of Algorithms? Why We Need to Study?" },
+      { id: "1.5", text: "Algorithm Examples" },
+      { id: "1.6", text: "Fundamentals of Algorithm Problem Solving" },
+      { id: "1.7", text: "Problem Types" },
+      { id: "1.8", text: "Fundamental Data Structures", sub: [
+        { id: "1.8.1", text: "Classification of Data Structures" },
+        { id: "1.8.2", text: "Primitive Data Structures" },
+        { id: "1.8.3", text: "Non-Primitive Data Structures" },
+        { id: "1.8.4", text: "Operations on Data Structures" },
+        { id: "1.8.5", text: "Abstract Data Type (ADT)" },
+        { id: "1.8.6", text: "Importance of Data Structures in Designing Algorithm" },
+      ]},
+      { id: "1.9", text: "Review Questions" },
+    ]},
+    { num: "2", title: "Fundamentals of Analysis of Algorithm Efficiency", topics: [
+      { id: "2.1", text: "The Analysis Framework", sub: [
+        { id: "2.1.1", text: "Space Complexity" },
+        { id: "2.1.2", text: "Time Complexity", sub: [
+          { id: "2.1.2.1", text: "Measuring an Input's Size" },
+          { id: "2.1.2.2", text: "Units for Measuring Running Time" },
+        ]},
+        { id: "2.1.3", text: "Orders of Growth" },
+        { id: "2.1.4", text: "Worst Case, Best Case and Average Case Efficiencies" },
+      ]},
+      { id: "2.2", text: "Asymptotic Notations", sub: [
+        { id: "2.2.1", text: "Big O Notation (O)" },
+        { id: "2.2.2", text: "Omega Notation (Omega)" },
+        { id: "2.2.3", text: "Theta Notation (Theta)" },
+        { id: "2.2.4", text: "Comparison of O, Omega and Theta Notations" },
+        { id: "2.2.5", text: "Using Limits for Comparing Orders of Growth" },
+      ]},
+      { id: "2.3", text: "Basic Efficiency Classes" },
+      { id: "2.4", text: "What is Iterative and Recursive Algorithms?" },
+      { id: "2.5", text: "Mathematical Analysis of Non-Recursive Algorithms", sub: [
+        { id: "2.5.1", text: "General Plan for Analyzing Non-recursive Algorithms" },
+        { id: "2.5.2", text: "Finding the Largest Element in an Array" },
+        { id: "2.5.3", text: "Checking the Uniqueness in an Array" },
+        { id: "2.5.4", text: "Matrix Multiplication" },
+      ]},
+      { id: "2.6", text: "Mathematical Analysis of Recursive Algorithms", sub: [
+        { id: "2.6.1", text: "General Plan for Analysing Recursive Algorithms" },
+        { id: "2.6.2", text: "Factorial of a Number" },
+        { id: "2.6.3", text: "Tower of Hanoi Problem" },
+        { id: "2.6.4", text: "Fibonacci Series" },
+      ]},
+      { id: "2.7", text: "Empirical Analysis of Algorithms", sub: [
+        { id: "2.7.1", text: "General Plan for Empirical Analysis" },
+        { id: "2.7.2", text: "Advantages and Disadvantages of Empirical Analysis" },
+        { id: "2.7.3", text: "Difference between Mathematical & Empirical Analysis" },
+      ]},
+      { id: "2.8", text: "Review Questions" },
+    ]},
+  ]},
+  { unit: "Unit-II", label: "Brute Force, Decrease & Divide and Conquer", chapters: [
+    { num: "3", title: "Brute Force Method & Exhaustive Search", topics: [
+      { id: "3.1", text: "Introduction" },
+      { id: "3.2", text: "Brute Force Method", sub: [
+        { id: "3.2.1", text: "Selection Sort" },
+        { id: "3.2.2", text: "Bubble Sort" },
+        { id: "3.2.3", text: "Sequential Search / Linear Search" },
+        { id: "3.2.4", text: "Brute-Force String Matching" },
+        { id: "3.2.5", text: "Advantages and Disadvantages of Brute-Force Method" },
+      ]},
+      { id: "3.3", text: "Exhaustive Search", sub: [
+        { id: "3.3.1", text: "Graph Traversals" },
+        { id: "3.3.2", text: "Depth First Search (DFS)" },
+        { id: "3.3.3", text: "Breadth First Search (BFS)" },
+        { id: "3.3.4", text: "Advantages and Disadvantages of Exhaustive Search" },
+      ]},
+      { id: "3.4", text: "Review Questions" },
+    ]},
+    { num: "4", title: "Decrease and Conquer", topics: [
+      { id: "4.1", text: "Decrease-and-Conquer Overview" },
+      { id: "4.2", text: "Decrease-by-a-Constant", sub: [
+        { id: "4.2.1", text: "Insertion Sort" },
+        { id: "4.2.2", text: "Topological Sorting" },
+        { id: "4.2.3", text: "Algorithm for Generating Combinatorial Objects", sub: [
+          { id: "4.2.3.1", text: "Generating Permutations" },
+          { id: "4.2.3.2", text: "Generating Subsets" },
+        ]},
+      ]},
+      { id: "4.3", text: "Decrease-by-a-Constant-factor", sub: [
+        { id: "4.3.1", text: "Binary Search" },
+        { id: "4.3.2", text: "Fake-Coin Problem" },
+        { id: "4.3.3", text: "Russian Peasant Multiplication" },
+        { id: "4.3.4", text: "Josephus Problem" },
+      ]},
+      { id: "4.4", text: "Advantages and Disadvantages of Decrease and Conquer" },
+      { id: "4.5", text: "Review Questions" },
+    ]},
+    { num: "5", title: "Divide and Conquer", topics: [
+      { id: "5.1", text: "Divide and Conquer Technique" },
+      { id: "5.2", text: "Merge Sort" },
+      { id: "5.3", text: "Quick Sort" },
+      { id: "5.4", text: "Binary Tree Traversal and Related Properties", sub: [
+        { id: "5.4.1", text: "What is Binary Tree?" },
+        { id: "5.4.2", text: "Properties of Binary Tree" },
+        { id: "5.4.3", text: "Binary Tree Traversals" },
+      ]},
+      { id: "5.5", text: "Strassen's Matrix Multiplication" },
+      { id: "5.6", text: "Advantages and Disadvantages of Divide and Conquer" },
+      { id: "5.7", text: "Review Questions" },
+    ]},
+  ]},
+  { unit: "Unit-III", label: "Space-Time Tradeoffs, Dynamic Programming & Greedy", chapters: [
+    { num: "6", title: "Space and Time Tradeoffs", topics: [
+      { id: "6.1", text: "Space and Time Tradeoffs", sub: [
+        { id: "6.1.1", text: "Precomputing or Input Enhancement" },
+        { id: "6.1.2", text: "Prestructuring" },
+      ]},
+      { id: "6.2", text: "Sorting by Counting" },
+      { id: "6.3", text: "Input Enhancement in String Matching", sub: [
+        { id: "6.3.1", text: "Horspool's Algorithm (Simplified Boyer Moore)" },
+        { id: "6.3.2", text: "Boyer Moore Algorithm" },
+      ]},
+      { id: "6.4", text: "Hashing", sub: [
+        { id: "6.4.1", text: "Hash Table" },
+        { id: "6.4.2", text: "Hash Function" },
+        { id: "6.4.3", text: "Hash Collision" },
+        { id: "6.4.4", text: "Choosing a Hash Function" },
+        { id: "6.4.5", text: "Collision Resolution", sub: [
+          { id: "6.4.5.1", text: "Open Addressing" },
+          { id: "6.4.5.2", text: "Collision Resolution by Chaining" },
+        ]},
+        { id: "6.4.6", text: "Time and Space Complexity of Hashing" },
+      ]},
+      { id: "6.5", text: "Review Questions" },
+    ]},
+    { num: "7", title: "Dynamic Programming", topics: [
+      { id: "7.1", text: "What is Dynamic Programming?" },
+      { id: "7.2", text: "Divide and Conquer vs Dynamic Programming" },
+      { id: "7.3", text: "Applications of Dynamic Programming" },
+      { id: "7.4", text: "The Process of Solving Problems Using Dynamic Programming" },
+      { id: "7.5", text: "Computing a Binomial Co-efficient" },
+      { id: "7.6", text: "Principle of Optimality" },
+      { id: "7.7", text: "Optimal Binary Search Tree" },
+      { id: "7.8", text: "The Knapsack Problem" },
+      { id: "7.9", text: "Memory Functions" },
+      { id: "7.10", text: "Warshall's Algorithm" },
+      { id: "7.11", text: "Floyd's Algorithm (All Pairs Shortest Path)" },
+      { id: "7.12", text: "Advantages and Disadvantages of Dynamic Programming" },
+      { id: "7.13", text: "Review Questions" },
+    ]},
+    { num: "8", title: "Greedy Technique", topics: [
+      { id: "8.1", text: "Introduction to Greedy Technique", sub: [
+        { id: "8.1.1", text: "Characteristics of Greedy Technique" },
+        { id: "8.1.2", text: "Control Abstraction / General Procedure" },
+        { id: "8.1.3", text: "Difference Between Dynamic Programming and Greedy" },
+        { id: "8.1.4", text: "Applications of Greedy Technique" },
+      ]},
+      { id: "8.2", text: "Minimum Spanning Tree", sub: [
+        { id: "8.2.1", text: "Prim's Algorithm" },
+        { id: "8.2.2", text: "Kruskal's Algorithm" },
+        { id: "8.2.3", text: "Difference Between Prim's and Kruskal's Algorithm" },
+      ]},
+      { id: "8.3", text: "Dijkstra's Algorithm (Single Source Shortest Path)" },
+      { id: "8.4", text: "Huffman Trees and Huffman Codes", sub: [
+        { id: "8.4.1", text: "Data Compression" },
+        { id: "8.4.2", text: "Fixed Length Codes" },
+        { id: "8.4.3", text: "Variable Length Codes" },
+        { id: "8.4.4", text: "Prefix Codes" },
+        { id: "8.4.5", text: "Meaning of Huffman Trees and Huffman Codes" },
+        { id: "8.4.6", text: "Huffman Algorithm" },
+      ]},
+      { id: "8.5", text: "Advantages and Disadvantages of Greedy Technique" },
+      { id: "8.6", text: "Review Questions" },
+    ]},
+  ]},
+  { unit: "Unit-IV", label: "Limitations & Coping Strategies", chapters: [
+    { num: "9", title: "Limitations of Algorithm Power", topics: [
+      { id: "9.1", text: "Introduction" },
+      { id: "9.2", text: "Lower-bound Arguments", sub: [
+        { id: "9.2.1", text: "Trivial Lower Bounds" },
+        { id: "9.2.2", text: "Information Theoretic Arguments" },
+        { id: "9.2.3", text: "Adversary Arguments" },
+        { id: "9.2.4", text: "Problem Reduction" },
+      ]},
+      { id: "9.3", text: "Decision Trees", sub: [
+        { id: "9.3.1", text: "Decision Trees for Sorting Algorithms" },
+        { id: "9.3.2", text: "Decision Trees for Searching a Sorted Array" },
+      ]},
+      { id: "9.4", text: "P, NP and NP-Complete Problems", sub: [
+        { id: "9.4.1", text: "The Class P Problems" },
+        { id: "9.4.2", text: "The Class NP Problems" },
+        { id: "9.4.3", text: "The Class NP Complete Problems" },
+      ]},
+      { id: "9.5", text: "Review Questions" },
+    ]},
+    { num: "10", title: "Coping with Limitations of Algorithm Power", topics: [
+      { id: "10.1", text: "Introduction" },
+      { id: "10.2", text: "Backtracking", sub: [
+        { id: "10.2.1", text: "General Backtracking Methods and Algorithms" },
+        { id: "10.2.2", text: "N-Queens Problem" },
+        { id: "10.2.3", text: "Hamiltonian Circuit Problem" },
+        { id: "10.2.4", text: "Sum of Subsets" },
+      ]},
+      { id: "10.3", text: "Branch and Bound", sub: [
+        { id: "10.3.1", text: "The Assignment Problem" },
+        { id: "10.3.2", text: "Knapsack Problem" },
+        { id: "10.3.3", text: "Travelling Salesman Problem" },
+      ]},
+    ]},
+  ]},
+];
+
+let checked = {};
+let currentUser = null;
+let saveTimer = null;
+
+function getAllIds(topics, ids = []) {
+  for (const t of topics) { ids.push(t.id); if (t.sub) getAllIds(t.sub, ids); }
+  return ids;
+}
+
+function showSync(state) {
+  const el = document.getElementById('sync-status');
+  el.className = 'sync-status ' + state;
+  el.textContent = state === 'saving' ? 'saving...' : 'synced';
+}
+
+async function loadFromFirestore(uid) {
+  const snap = await getDoc(doc(db, 'users', uid));
+  checked = snap.exists() ? (snap.data().checked || {}) : {};
+}
+
+async function saveToFirestore() {
+  if (!currentUser) return;
+  showSync('saving');
+  await setDoc(doc(db, 'users', currentUser.uid), { checked }, { merge: true });
+  showSync('saved');
+}
+
+function scheduleSave() { clearTimeout(saveTimer); saveTimer = setTimeout(saveToFirestore, 1200); }
+
+window.signInWithGoogle = async function() {
+  try { await signInWithPopup(auth, new GoogleAuthProvider()); }
+  catch(e) { alert('Sign in failed: ' + e.message); }
+};
+window.signOut = async function() { await fbSignOut(auth); };
+
+onAuthStateChanged(auth, async (user) => {
+  document.getElementById('loading-screen').style.display = 'none';
+  if (user) {
+    currentUser = user;
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app-screen').style.display = 'block';
+    document.getElementById('user-avatar').src = user.photoURL || '';
+    await loadFromFirestore(user.uid);
+    render();
+    showSync('saved');
+  } else {
+    currentUser = null;
+    document.getElementById('login-screen').style.display = 'flex';
+    document.getElementById('app-screen').style.display = 'none';
+  }
+});
+
+function renderTopics(topics, depth = 0) {
+  let html = '';
+  for (const t of topics) {
+    const cls = depth === 1 ? 'subtopic' : depth >= 2 ? 'subsubtopic' : '';
+    html += `<li class="topic-item ${cls} ${checked[t.id] ? 'done' : ''}" id="row-${t.id}" onclick="toggle('${t.id}')">
+      <div class="checkbox ${checked[t.id] ? 'checked' : ''}" id="chk-${t.id}"><div class="checkmark"></div></div>
+      <span class="topic-label">${t.id}&nbsp;&nbsp;${t.text}</span>
+    </li>`;
+    if (t.sub) html += renderTopics(t.sub, depth + 1);
+  }
+  return html;
+}
+
+function render() {
+  let html = '';
+  for (const unit of syllabus) {
+    const allIds = []; for (const ch of unit.chapters) getAllIds(ch.topics, allIds);
+    const doneCount = allIds.filter(id => checked[id]).length;
+    html += `<div class="unit-block" id="${unit.unit}">
+      <div class="unit-header" onclick="toggleUnit('${unit.unit}')">
+        <span class="unit-badge">${unit.unit.replace('-',' ')}</span>
+        <span class="unit-title">${unit.label}</span>
+        <span class="unit-count">${doneCount}/${allIds.length}</span>
+        <span class="chevron">&#9660;</span>
+      </div>
+      <div class="unit-chapters">`;
+    for (const ch of unit.chapters) {
+      const chIds = getAllIds(ch.topics);
+      const chDone = chIds.filter(id => checked[id]).length;
+      html += `<div class="chapter-block" id="ch-${ch.num}">
+        <div class="chapter-header" onclick="toggleChapter('ch-${ch.num}')">
+          <span class="chapter-num">Ch. ${ch.num}</span>
+          <span class="chapter-title">${ch.title}</span>
+          <span class="chapter-prog">${chDone}/${chIds.length}</span>
+          <span class="chevron">&#9660;</span>
+        </div>
+        <div class="chapter-topics"><ul class="topic-list">${renderTopics(ch.topics)}</ul></div>
+      </div>`;
+    }
+    html += `</div></div>`;
+  }
+  document.getElementById('syllabus').innerHTML = html;
+  updateProgress();
+}
+
+window.toggle = function(id) {
+  checked[id] = !checked[id];
+  document.getElementById('row-' + id)?.classList.toggle('done', checked[id]);
+  document.getElementById('chk-' + id)?.classList.toggle('checked', checked[id]);
+  updateProgress(); updateCounts(); scheduleSave();
+};
+
+function updateProgress() {
+  let total = 0, done = 0;
+  for (const unit of syllabus) for (const ch of unit.chapters) {
+    const ids = getAllIds(ch.topics); total += ids.length;
+    done += ids.filter(id => checked[id]).length;
+  }
+  const pct = total ? Math.round(done / total * 100) : 0;
+  document.getElementById('prog-fill').style.width = pct + '%';
+  document.getElementById('prog-label').textContent = `${done} of ${total} topics`;
+  document.getElementById('prog-pct').textContent = pct + '%';
+}
+
+function updateCounts() {
+  for (const unit of syllabus) {
+    const allIds = []; for (const ch of unit.chapters) getAllIds(ch.topics, allIds);
+    const el = document.querySelector(`#${unit.unit} .unit-count`);
+    if (el) el.textContent = allIds.filter(id => checked[id]).length + '/' + allIds.length;
+    for (const ch of unit.chapters) {
+      const chIds = getAllIds(ch.topics);
+      const cel = document.querySelector(`#ch-${ch.num} .chapter-prog`);
+      if (cel) cel.textContent = chIds.filter(id => checked[id]).length + '/' + chIds.length;
+    }
+  }
+}
+
+window.toggleUnit = id => document.getElementById(id)?.classList.toggle('collapsed');
+window.toggleChapter = id => document.getElementById(id)?.classList.toggle('chapter-collapsed');
+window.checkAll = () => { for (const u of syllabus) for (const ch of u.chapters) getAllIds(ch.topics).forEach(id => checked[id] = true); render(); scheduleSave(); };
+window.uncheckAll = () => { checked = {}; render(); scheduleSave(); };
+window.expandAll = () => { document.querySelectorAll('.unit-block').forEach(e => e.classList.remove('collapsed')); document.querySelectorAll('.chapter-block').forEach(e => e.classList.remove('chapter-collapsed')); };
+window.collapseAll = () => { document.querySelectorAll('.unit-block').forEach(e => e.classList.add('collapsed')); document.querySelectorAll('.chapter-block').forEach(e => e.classList.add('chapter-collapsed')); };
+</script>
+</body>
+</html>
